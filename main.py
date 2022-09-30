@@ -1,16 +1,36 @@
-# This is a sample Python script.
+import json
+import time
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+from apscheduler.schedulers.background import BackgroundScheduler
+from aiogram import executor
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+
+from vk_parser import VkParser
+from sender import send_post
+import config
 
 
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+def main():
+    bot = Bot(token=config.tg_token, parse_mode=types.ParseMode.HTML)
+    dp = Dispatcher(bot, storage=MemoryStorage())
+    with open("publics.json", "r") as f:
+        groups = json.load(f)
+    for group in groups:
+
+        vk = VkParser(vk_group=group["vk_id"])
+        posts = vk.get_posts()
+        new_last_id = posts[0]["id"]
+        if new_last_id > group["last_post_id"]:
+            post = posts[0]
+            vk.parse_post(post)
+            executor.start(dp, send_post(bot, group['telegram_login'], vk.text, vk.photos, vk.videos))
+            group["last_post_id"] = new_last_id
+            with open('publics.json', 'w') as outfile:
+                json.dump(groups, outfile)
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+if __name__ == "__main__":
+    while True:
+        main()
+        time.sleep(60*5)
