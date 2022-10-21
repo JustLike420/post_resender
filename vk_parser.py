@@ -47,7 +47,9 @@ class VkParser:
                         },
                     )
                     data = response.json()
-                    video_url = data["response"]['items'][0]['player']
+                    video_url1 = data["response"]['items'][0]['player']
+                    print(video_url1)
+                    video_url = f'https://vk.com/video{owner_id}_{video_id}'
                     self.videos.append(video_url)
 
 
